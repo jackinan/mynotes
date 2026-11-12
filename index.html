@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#4f46e5">\n<link rel="manifest" href="manifest.json"><title>MyNotes — Catatan</title>
+<style>
+:root{--bg:#f4f5fb;--card:#fff;--ink:#1f2433;--muted:#73798c;--line:#e7e8f0;--accent:#4f46e5;--accent2:#eef2ff;--danger:#dc2626}
+[data-theme=dark]{--bg:#11131b;--card:#1c202b;--ink:#edf0fa;--muted:#a1a7ba;--line:#343949;--accent:#a5b4fc;--accent2:#292744;--danger:#f87171}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
+button,input,textarea,select{font:inherit}button{cursor:pointer;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:9px 12px;border-radius:11px}button:hover{filter:brightness(.97)}button.primary{background:var(--accent);color:white;border-color:var(--accent)}button.danger{color:var(--danger)}
+.app{max-width:1120px;margin:auto;padding:18px}.top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}.brand{display:flex;gap:10px;align-items:center}.logo{width:40px;height:40px;border-radius:13px;background:var(--accent);color:white;display:grid;place-items:center;font-size:21px}.brand h1{font-size:21px;margin:0}.brand p{margin:0;color:var(--muted);font-size:12px}.top-actions{display:flex;gap:8px;flex-wrap:wrap}
+.grid{display:grid;grid-template-columns:310px 1fr;gap:16px}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden}.side{min-height:76vh;display:flex;flex-direction:column}.side-tools{padding:13px;display:grid;gap:9px;border-bottom:1px solid var(--line)}input,select,textarea{width:100%;border:1px solid var(--line);border-radius:11px;background:var(--card);color:var(--ink);padding:11px}input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:1px}.list{overflow:auto}.item{padding:14px;border-bottom:1px solid var(--line);cursor:pointer}.item.active{background:var(--accent2)}.item b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.item p{margin:4px 0;color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.item small{color:var(--muted);font-size:11px}.editor{min-height:76vh;padding:18px;display:flex;flex-direction:column;gap:13px}.edit-tools{display:flex;gap:9px;align-items:center}.edit-tools select{max-width:190px}.title{font-size:23px;font-weight:700;border:0;border-bottom:1px solid var(--line);border-radius:0;padding:10px 2px}.body{flex:1;min-height:48vh;resize:vertical;border:0;padding:8px 2px;line-height:1.8}.foot{display:flex;justify-content:space-between;color:var(--muted);font-size:12px;gap:10px}.empty{padding:25px;text-align:center;color:var(--muted)}.backup{display:none}#fileInput{display:none}
+@media(max-width:720px){.app{padding:10px}.top{align-items:flex-start}.brand p{display:none}.grid{grid-template-columns:1fr}.side{min-height:30vh;max-height:36vh}.editor{min-height:58vh;padding:13px}.body{min-height:35vh}.top-actions button{padding:8px}.edit-tools{flex-wrap:wrap}}
+</style>
+</head>
+<body><main class="app">
+<header class="top">
+<div class="brand"><div class="logo">✎</div><div><h1>MyNotes</h1><p>Catatanmu, tersimpan di perangkat</p></div></div>
+<div class="top-actions"><button id="theme">🌙</button><button id="export">⬇ Backup</button><button id="import">⬆ Pulihkan</button><button id="add" class="primary">＋ Baru</button></div>
+</header>
+<div class="grid">
+<aside class="card side"><div class="side-tools"><input id="search" placeholder="🔎 Cari catatan…"><select id="filter"><option value="">Semua kategori</option><option>Pribadi</option><option>Belajar</option><option>Kerja</option><option>Lainnya</option></select></div><div id="list" class="list"></div></aside>
+<section class="card editor"><div class="edit-tools"><select id="category"><option>Pribadi</option><option>Belajar</option><option>Kerja</option><option>Lainnya</option></select><button id="delete" class="danger">🗑 Hapus</button></div><input id="title" class="title" placeholder="Judul catatan"><textarea id="body" class="body" placeholder="Mulai menulis sesuatu…"></textarea><div class="foot"><span id="status">Siap</span><span id="chars">0 karakter</span></div></section>
+</div><input id="fileInput" type="file" accept="application/json">
+</main>
+<script>
+const $=id=>document.getElementById(id), KEY='mynotes-v2';
+let notes=JSON.parse(localStorage.getItem(KEY)||'[]'), active=null, saveTimer;
+function save(){localStorage.setItem(KEY,JSON.stringify(notes));$('status').textContent='Tersimpan ✓';drawList()}
+function create(){let n={id:Date.now().toString(),title:'',body:'',category:'Pribadi',updated:Date.now()};notes.unshift(n);active=n.id;save();openNote(n);$('title').focus()}
+function openNote(n){active=n.id;$('title').value=n.title;$('body').value=n.body;$('category').value=n.category||'Pribadi';count();drawList()}
+function count(){$('chars').textContent=$('body').value.length+' karakter'}
+function drawList(){let q=$('search').value.toLowerCase(),c=$('filter').value,arr=notes.filter(n=>(!c||n.category===c)&&(n.title+' '+n.body).toLowerCase().includes(q));$('list').innerHTML='';if(!arr.length){$('list').innerHTML='<div class="empty">Catatan tidak ditemukan.</div>';return}arr.forEach(n=>{let d=document.createElement('div');d.className='item'+(n.id===active?' active':'');let b=document.createElement('b');b.textContent=n.title||'Catatan tanpa judul';let p=document.createElement('p');p.textContent=n.body||'Belum ada isi';let s=document.createElement('small');s.textContent=n.category+' · '+new Date(n.updated).toLocaleDateString('id-ID');d.append(b,p,s);d.onclick=()=>openNote(n);$('list').append(d)})}
+function queue(){ $('status').textContent='Menyimpan…';count();clearTimeout(saveTimer);saveTimer=setTimeout(()=>{let n=notes.find(x=>x.id===active);if(!n)return;n.title=$('title').value;n.body=$('body').value;n.category=$('category').value;n.updated=Date.now();save()},300)}
+$('add').onclick=create;$('title').oninput=queue;$('body').oninput=queue;$('category').onchange=queue;$('search').oninput=drawList;$('filter').onchange=drawList;
+$('delete').onclick=()=>{if(!active)return;if(!confirm('Hapus catatan ini?'))return;notes=notes.filter(n=>n.id!==active);active=null;save();if(notes.length)openNote(notes[0]);else{$('title').value='';$('body').value='';count()}};
+$('theme').onclick=()=>{let dark=document.documentElement.dataset.theme!=='dark';document.documentElement.dataset.theme=dark?'dark':'';localStorage.setItem('mynotes-theme',dark?'dark':'light');$('theme').textContent=dark?'☀️':'🌙'};
+if(localStorage.getItem('mynotes-theme')==='dark')document.documentElement.dataset.theme='dark';
+$('export').onclick=()=>{let blob=new Blob([JSON.stringify({app:'MyNotes',version:2,exportedAt:new Date().toISOString(),notes},null,2)],{type:'application/json'});let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='MyNotes-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(a.href)};
+$('import').onclick=()=>$('fileInput').click();
+$('fileInput').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let data=JSON.parse(await f.text()),incoming=Array.isArray(data)?data:data.notes;if(!Array.isArray(incoming))throw Error('Format backup tidak dikenal');if(!confirm('Pulihkan backup? Catatan saat ini akan diganti.'))return;notes=incoming;active=null;save();if(notes.length)openNote(notes[0]);else create();alert('Backup berhasil dipulihkan.')}catch(err){alert('Backup gagal dibaca: '+err.message)}finally{e.target.value=''}};
+drawList();if(notes.length)openNote(notes[0]);else create();
+</script><script>
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(console.error));
+}
+</script>
+</body></html>
